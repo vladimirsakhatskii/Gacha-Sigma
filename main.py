@@ -24,3 +24,4 @@ async def play(message: types.Message):
 if __name__ == '__main__':
     print('Bot started!')
     executor.start_polling(dp)
+    print('Bot stopped!')
