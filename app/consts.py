@@ -1,0 +1,1 @@
+GACHI_PAY = 10

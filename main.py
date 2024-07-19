@@ -1,12 +1,20 @@
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.types import BotCommand
 from dotenv import load_dotenv
+import app.database as app
 import os
 # from app import Admin os Admin
 
 load_dotenv()
 bot = Bot(token=os.getenv('TOKEN'))
 dp = Dispatcher(bot=bot)
+
+app.create_table()
+
+# айди с чатом админов
+admins = [
+    '5593392332',
+]
 
 bot_commands = [
         BotCommand(command="/start", description="Запустить бота"),
@@ -22,9 +30,12 @@ async def send_welcome(message: types.Message):
         chat_id=message.from_user.id)
     await message.answer(text='Желаю тебе удачи на просторах этой гачи)')
     await bot.set_my_commands(bot_commands)
+    msg = app.database.add_user(message.chat.id)
+    await message.answer(text='Желаю тебе удачи на просторах этой гачи)' + msg)
 
 @dp.message_handler(commands=['cod'])
 async def cod(message: types.Message):
+    app.database.add_transaction(message.chat.id)
     await message.answer(text='Код')
 
 @dp.message_handler(commands=['play'])
