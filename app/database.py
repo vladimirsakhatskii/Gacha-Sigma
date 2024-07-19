@@ -1,77 +1,84 @@
-import mysql.connector
+import sqlite3
 
-config = {
-    'user': 'your_username',
-    'password': 'your_password',
-    'host': 'localhost',
-    'database': 'users_transactions_db',
-}
+# import mysql.connector
 
-conn = mysql.connector.connect(**config)
+# config = {
+#     'user': 'your_username',
+#     'password': 'your_password',
+#     'host': 'localhost',
+#     'database': 'users_transactions_db',
+# }
+
+conn = sqlite3.connect("sigma.sqlite")
 c = conn.cursor()
 
 
 def create_table():
     # Создаем таблицы, если они еще не существуют
-    c.execute("""CREATE TABLE IF NOT EXISTS Users
-                 (UserID INT PRIMARY KEY,
-                  Coins INT  NOT NULL,
-                  CountPlay INT NOT NULL,
+    c.execute("""CREATE TABLE IF NOT Enew_coinsXISTS Users
+                 (UserID INTEGER PRIMARY KEY,
+                  Coins INTEGER  NOT NULL,
+                  CountPlay INTEGER NOT NULL
                   )
                   """)
 
     c.execute("""CREATE TABLE IF NOT EXISTS Transactions
-                 (TransactionID INT PRIMARY KEY,
-                  SenderID INT NOT NULL,
+                 (TransactionID INTEGER PRIMARY KEY,
+                  SenderID INTEGER NOT NULL,
                   IsConfirmed BOOLEAN NOT NULL,
-                  FOREIGN KEY(SenderID) REFERENCES Users(UserID),
-                  FOREIGN KEY(ReceiverID) REFERENCES Users(UserID))""")
+                  FOREIGN KEY(SenderID) REFERENCES Users(UserID))
+                  """)
 
     # Сохраняем изменения
     conn.commit()
 
 
-def add_user(user_id, coins=0) -> str:
-    c.execute("SELECT (user_id) FROM Users", user_id)
-    current_user = c.fetchall()
-    if current_user is not None:
-        return "пользователь уже существует"
+def add_user(user_id: int, coins: int = 0) -> str:
+    try:
+        c.execute("SELECT * FROM Users WHERE UserID =?", (user_id,))
+        current_user = c.fetchone()
+        if current_user is not None:
+            return "пользователь уже существует"
+        c.execute("INSERT OR IGNORE INTO Users (UserID, Coins, CountPlay) VALUES (?, ?, ?)", (user_id, 0, 0))
+        conn.commit()
 
-    c.execute("INSERT INTO Users (UserID, Coins, CountPlay) VALUES (%s, %s, %s)", (user_id, coins, 0))
-    conn.commit()
+        return "успешно добавлен"
+    except Exception as e:
+        return "что то пошло не так"
 
-    return "успешно добавлен"
 
-
-def add_transaction(sender_id):
-    c.execute("INSERT INTO Transactions (SenderID, IsConfirmed) VALUES (?, ?)",
-              (sender_id, 0))
+def add_transaction(sender_id, transaction_id: int) -> str:
+    c.execute("INSERT OR IGNORE INTO Transactions (TransactionID, SenderID, IsConfirmed) VALUES (?, ?, ?)",
+              (transaction_id, sender_id, 0,))
     conn.commit()
 
     return "транзакция добавлена"
 
 
+"""Пополнение баланса пользователя после подтверждения."""
 def confirm_transaction(transaction_id, new_coins):
-    c.execute("UPDATE Transactions SET IsConfirmed = TRUE WHERE TransactionID = %s", (transaction_id,))
-    current_coins = get_coins(transaction_id)
+    # TODO: нужно сделать так, чтобы админ отвечал на сообщение и вызывался этот метод для пополнения баланса
+    c.execute("UPDATE Transactions SET IsConfirmed = TRUE WHERE TransactionID = ?", (transaction_id,))
+    current_coins, user_id = get_coins(transaction_id)
     # TODO: тут точно нихера не работает
-    new_coins_value = current_coins + amount
-    cursor.execute("UPDATE Users SET Coins = %s WHERE UserID = %s", (new_coins_value, user_id))
+    new_coins_value = current_coins + new_coins
+    c.execute("UPDATE Users SET Coins = ? WHERE UserID = ?", (new_coins_value, user_id,))
 
     conn.commit()
 
     return "транзакция подтверждения"
 
 
+"""Возвращает юзера и его количество монет по айди транзакции"""
 def get_coins(transaction_id):
-    cursor.execute("SELECT SenderID FROM Transactions WHERE TransactionID = %s", (transaction_id,))
-    result = cursor.fetchone()
+    c.execute("SELECT SenderID FROM Transactions WHERE TransactionID = ?", (transaction_id,))
+    result = c.fetchone()
     user_id = result[0]
 
-    cursor.execute("SELECT Coins FROM Users WHERE UserID = %s", (user_id,))
-    result = cursor.fetchone()
+    c.execute("SELECT Coins FROM Users WHERE UserID = ?", (user_id,))
+    result = c.fetchone()
     if result:
-        return result[0]  # Возвращаем значение Coins, если пользователь найден
+        return result[0], user_id  # Возвращаем значение Coins, если пользователь найден
     else:
         return None
 

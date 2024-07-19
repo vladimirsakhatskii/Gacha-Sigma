@@ -1,6 +1,6 @@
 from aiogram import Bot, Dispatcher, executor, types
 from dotenv import load_dotenv
-import app.database
+import app.database as app
 import os
 
 load_dotenv()
@@ -9,6 +9,7 @@ dp = Dispatcher(bot=bot)
 
 app.create_table()
 
+# айди с чатом админов
 admins = [
     '5593392332',
 ]
